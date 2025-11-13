@@ -29,7 +29,7 @@ export default function ErrorPage() {
             Back to Home
           </Link>
           <Link to="/apps" className="btn btn-outline btn-secondary">
-            Browse Apps
+            Browse Apps..
           </Link>
         </div>
       </div>
