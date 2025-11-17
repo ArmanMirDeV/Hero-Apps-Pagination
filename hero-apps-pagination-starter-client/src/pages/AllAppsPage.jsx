@@ -11,6 +11,8 @@ const AllAppsPage = () => {
   const [sort, setSort] = useState("size");
   const [order, setOrder] = useState("");
 
+  const [searchText, setSearchText] = useState("");
+
   const limit = 10;
 
   useEffect(() => {
@@ -19,7 +21,7 @@ const AllAppsPage = () => {
         const res = await fetch(
           `http://localhost:5000/apps?limit=${limit}&skip=${
             currentPage * limit
-          }&sort=${sort}&order=${order}`
+          }&sort=${sort}&order=${order}&search=${searchText}`
         );
         const data = await res.json();
 
@@ -34,7 +36,7 @@ const AllAppsPage = () => {
     };
 
     fetchApps();
-  }, [currentPage, sort, order]);
+  }, [currentPage, sort, order, searchText]);
 
   const handleSelect = (e) => {
     const [s, o] = e.target.value.split("-");
@@ -42,6 +44,10 @@ const AllAppsPage = () => {
     setOrder(o);
     setCurrentPage(0); // reset pagination when sorting
   };
+
+  const handleSearch = (e) => {
+    setSearchText(e.target.value)
+  }
 
   return (
     <div>
@@ -82,7 +88,7 @@ const AllAppsPage = () => {
                 <path d="m21 21-4.3-4.3"></path>
               </g>
             </svg>
-            <input type="search" placeholder="Search Apps" />
+            <input onChange={handleSearch} type="search" placeholder="Search Apps" />
           </label>
         </form>
 

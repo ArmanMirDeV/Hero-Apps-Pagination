@@ -50,25 +50,38 @@ const appsCollection = database.collection("apps");
 
 app.get("/apps", async (req, res) => {
   try {
-    const { limit = 0, skip = 0, sort = "size", order = "desc" } = req.query;
-    // console.log(limit);
+    const {
+      limit = 10,
+      skip = 0,
+      sort = "size",
+      order = "desc",
+      search = "",
+    } = req.query;
 
-    const sortOption = {};
-    sortOption[sort || "size"] = order === "asc" ? 1 : -1;
+    // Sort object
+    const sortOption = { [sort]: order === "asc" ? 1 : -1 };
 
+    // Search query
+    const query = {};
+    if (search.trim()) {
+      query.title = { $regex: search, $options: "i" }; // FIXED: $options
+    }
 
+    // Fetch filtered + sorted + paginated
     const apps = await appsCollection
-      .find()
+      .find(query) // FIXED: search applied
       .sort(sortOption)
-      .limit(Number(limit))
       .skip(Number(skip))
+      .limit(Number(limit))
       .project({ description: 0, ratings: 0 })
       .toArray();
 
-    const count = await appsCollection.countDocuments();
-    res.send({ apps, total: count });
+    // Count total with same filter
+    const total = await appsCollection.countDocuments(query);
+
+    res.send({ apps, total });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
