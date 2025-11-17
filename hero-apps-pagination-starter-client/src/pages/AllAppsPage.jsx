@@ -7,40 +7,62 @@ const AllAppsPage = () => {
   const [totalApps, setTotalApps] = useState(0);
   const [totalPage, setTotalPage] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
+
+  const [sort, setSort] = useState("size");
+  const [order, setOrder] = useState("");
+
   const limit = 10;
 
   useEffect(() => {
-    fetch(`http://localhost:5000/apps?limit=${limit}&skip=${currentPage * limit}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setApps(data.apps);
-        setTotalApps(data.total);
-        const page = Math.ceil(data.total / limit);
+    const fetchApps = async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:5000/apps?limit=${limit}&skip=${
+            currentPage * limit
+          }&sort=${sort}&order=${order}`
+        );
+        const data = await res.json();
 
-        setTotalPage(page);
-      });
-  }, [currentPage]);
+        setApps(data.apps || []);
+        setTotalApps(data.total || 0);
+
+        const pages = Math.ceil((data.total || 0) / limit);
+        setTotalPage(pages);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    };
+
+    fetchApps();
+  }, [currentPage, sort, order]);
+
+  const handleSelect = (e) => {
+    const [s, o] = e.target.value.split("-");
+    setSort(s);
+    setOrder(o);
+    setCurrentPage(0); // reset pagination when sorting
+  };
 
   return (
     <div>
       <title>All Apps | Hero Apps</title>
+
       {/* Header */}
       <div className="py-16">
         <h2 className="text-4xl font-bold text-center text-primary flex justify-center gap-3">
           Our All Applications
-          <DiVisualstudio size={48} className="text-secondary"></DiVisualstudio>
+          <DiVisualstudio size={48} className="text-secondary" />
         </h2>
         <p className="text-center text-gray-400">
           Explore All Apps on the Market developed by us. We code for Millions
         </p>
       </div>
-      {/* Search and Count */}
+
+      {/* Search + Count + Sort */}
       <div className="w-11/12 mx-auto flex flex-col-reverse lg:flex-row gap-5 items-start justify-between lg:items-end mt-10">
-        <div>
-          <h2 className="text-lg underline font-bold">
-            ({totalApps}) Apps Found
-          </h2>
-        </div>
+        <h2 className="text-lg underline font-bold">
+          ({totalApps}) Apps Found
+        </h2>
 
         <form>
           <label className="input max-w-[300px] w-[300px] input-secondary">
@@ -60,41 +82,42 @@ const AllAppsPage = () => {
                 <path d="m21 21-4.3-4.3"></path>
               </g>
             </svg>
-            <input type="search" className="" placeholder="Search Apps" />
+            <input type="search" placeholder="Search Apps" />
           </label>
         </form>
 
-        <div className="">
-          <select className="select bg-white">
-            <option selected disabled={true}>
-              Sort by <span className="text-xs">R / S / D</span>
-            </option>
-            <option value={"rating-desc"}>Ratings : High - Low</option>
-            <option value={"rating-asc"}>Ratings : Low - High</option>
-            <option value={"size-desc"}>Size : High - Low</option>
-            <option value={"size-asc"}>Size : Low - High</option>
-            <option value={"downloads-desc"}>Downloads : High - Low</option>
-            <option value={"downloads-asc"}>Downloads : Low - High</option>
-          </select>
-        </div>
+        <select onChange={handleSelect} className="select bg-white">
+          <option disabled selected>
+            Sort by R / S / D
+          </option>
+          <option value="rating-desc">Ratings : High - Low</option>
+          <option value="rating-asc">Ratings : Low - High</option>
+          <option value="size-desc">Size : High - Low</option>
+          <option value="size-asc">Size : Low - High</option>
+          <option value="downloads-desc">Downloads : High - Low</option>
+          <option value="downloads-asc">Downloads : Low - High</option>
+        </select>
       </div>
-      {/* Loading State */}
-      <>
-        {/* Apps Grid */}
-        <div className="w-11/12 mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 my-10 gap-5">
-          {apps.length === 0 ? (
-            <div className="col-span-full text-center py-10 space-y-10">
-              <h2 className="text-6xl font-semibold opacity-60">
-                No Apps Found
-              </h2>
-              <button className="btn btn-primary">Show All Apps</button>
-            </div>
-          ) : (
-            apps.map((app) => <AppCard key={app.id} app={app}></AppCard>)
-          )}
-        </div>
-      </>
-      <div className="flex justify-center flex-wrap py-10">
+
+      {/* Apps Grid */}
+      <div className="w-11/12 mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 my-10 gap-5">
+        {apps.length === 0 ? (
+          <div className="col-span-full text-center py-10 space-y-10">
+            <h2 className="text-6xl font-semibold opacity-60">No Apps Found</h2>
+            <button
+              className="btn btn-primary"
+              onClick={() => setCurrentPage(0)}
+            >
+              Show All Apps
+            </button>
+          </div>
+        ) : (
+          apps.map((app) => <AppCard key={app._id} app={app} />)
+        )}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center flex-wrap py-10 gap-2">
         {currentPage > 0 && (
           <button
             onClick={() => setCurrentPage(currentPage - 1)}
@@ -104,24 +127,22 @@ const AllAppsPage = () => {
           </button>
         )}
 
-        {
-          // 0,1,2,3,4,5,6,7,8,9
-          [...Array(totalPage).keys()].map((i) => (
-            <button
-              onClick={() => setCurrentPage(i)}
-              className={`btn ${i == currentPage && "btn-primary"}`}
-            >
-              {i+1}
-            </button>
-          ))
-        }
-        {currentPage < totalPage -1 && (
+        {[...Array(totalPage).keys()].map((i) => (
+          <button
+            key={i}
+            onClick={() => setCurrentPage(i)}
+            className={`btn ${i === currentPage ? "btn-primary" : ""}`}
+          >
+            {i + 1}
+          </button>
+        ))}
+
+        {currentPage < totalPage - 1 && (
           <button
             onClick={() => setCurrentPage(currentPage + 1)}
             className="btn"
           >
-            {" "}
-            Next{" "}
+            Next
           </button>
         )}
       </div>
